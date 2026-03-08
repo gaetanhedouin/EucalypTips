@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Nouveau Tracking",
+    "slug": "nouveau-tracking",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f6f9ef"
+      }
+    }
+  }
+}

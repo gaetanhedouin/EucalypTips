@@ -1,0 +1,125 @@
+# Runbook Deploiement (2 Fronts + 1 API)
+
+Objectif:
+- 1 backend unique: `@app/api`
+- 2 frontends autonomes: `@app/eucanalyptips` et `@site/web`
+- 3 domaines differents possibles
+
+Exemple de domaines:
+- API: `https://api.example.com`
+- App: `https://app.example.com`
+- Site: `https://site.example.com`
+
+## 1) Prerequis infra
+
+1. Base PostgreSQL managée accessible depuis l API.
+2. Redis managé accessible depuis l API.
+3. SMTP reel (verification email / reset password).
+4. DNS configure:
+   - `api.example.com` -> service API
+   - `app.example.com` -> service App Next
+   - `site.example.com` -> service Site Next
+5. TLS/HTTPS actif sur les 3 domaines.
+
+## 2) Variables d environnement production
+
+1. API: copier `EucAnalysTips (App)/api/.env.production.example`.
+2. App: copier `EucAnalysTips (App)/app/.env.production.example`.
+3. Site: copier `EucalypTips (Site)/web/.env.production.example`.
+
+Points critiques API:
+- `APP_WEB_BASE_URL` et `SITE_WEB_BASE_URL` doivent etre les domaines reels.
+- `API_CORS_ORIGINS` doit contenir exactement les frontends autorises.
+- `AUTH_REDIRECT_ALLOWLIST` doit contenir exactement les frontends autorises.
+- `SEED_DEMO_DATA=false` en production.
+- `EMAIL_MODE=smtp` avec credentials SMTP valides.
+
+## 3) Build monorepo
+
+Depuis la racine:
+
+```bash
+npm ci
+npm run build --workspace @nouveau/types
+npm run build --workspace @nouveau/sdk
+npm run build --workspace @app/api
+npm run build --workspace @app/eucanalyptips
+npm run build --workspace @site/web
+```
+
+## 4) Deploiement API (source of truth)
+
+1. Deployer l image / service API avec les variables de `api/.env.production.example`.
+2. Executer les migrations Prisma avant de servir le trafic:
+
+```bash
+npm run prisma:migrate:deploy --workspace @app/api
+```
+
+3. Demarrer l API:
+
+```bash
+npm run start --workspace @app/api
+```
+
+4. Verifier health:
+
+```bash
+curl https://api.example.com/v1/health
+```
+
+## 5) Deploiement App frontend
+
+1. Variables:
+   - `NEXT_PUBLIC_API_BASE_URL=https://api.example.com`
+2. Build + start:
+
+```bash
+npm run build --workspace @app/eucanalyptips
+npm run start --workspace @app/eucanalyptips
+```
+
+3. Publier derriere `https://app.example.com`.
+
+## 6) Deploiement Site frontend
+
+1. Variables:
+   - `NEXT_PUBLIC_SITE_API_BASE_URL=https://api.example.com`
+   - URLs Notion premium
+2. Build + start:
+
+```bash
+npm run build --workspace @site/web
+npm run start --workspace @site/web
+```
+
+3. Publier derriere `https://site.example.com`.
+
+## 7) Validation post-deploiement
+
+1. `GET /v1/health` OK.
+2. Inscription depuis App -> email verification recu.
+3. Meme compte peut se connecter sur Site.
+4. `POST /v1/auth/login` renvoie bien `accessToken`, `refreshToken`, `user`.
+5. `POST /v1/auth/refresh` fonctionne avec `refreshToken` body.
+6. `GET /v1/me` fonctionne en Bearer depuis App et Site.
+7. Logout App n invalide pas automatiquement une session Site distincte.
+8. Origines non autorisees bloquees par CORS.
+
+## 8) Rollback rapide
+
+1. Revenir au dernier release API stable.
+2. Relancer frontends sur la derniere build stable.
+3. Ne pas rollback la base si migrations destructives appliquees.
+4. En cas incident auth, forcer logout global via revocation `refresh_sessions` (DB) puis redeploiement API.
+
+## 9) Notes operationnelles
+
+1. `@site/api` est deprecie et ne doit pas etre deployee.
+2. Les cookies HttpOnly restent en compat locale, mais le mode principal est Bearer + refresh token.
+3. Pour un futur SSO OAuth/OIDC, prevoir une phase dediee (hors scope actuel).
+
+
+## Variante hebergeurs sans domaine
+- Voir [DEPLOYMENT_VERCEL_RAILWAY.md](./DEPLOYMENT_VERCEL_RAILWAY.md) (Vercel + Railway, URLs temporaires).
+

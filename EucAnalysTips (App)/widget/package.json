@@ -1,0 +1,19 @@
+{
+  "name": "@app/widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/widget.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=iife --global-name=NouveauWidget --outfile=dist/widget.js",
+    "dev": "esbuild src/index.ts --bundle --format=iife --global-name=NouveauWidget --outfile=dist/widget.js --watch",
+    "test": "echo \"No tests for @app/widget\""
+  },
+  "dependencies": {
+    "@nouveau/types": "0.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}

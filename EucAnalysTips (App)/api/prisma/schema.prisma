@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BankrollMode {
+  SECURE_LOCKED
+  FLEX_EDIT
+}
+
+enum BetStatus {
+  PENDING
+  WIN
+  LOSS
+}
+
+enum Sport {
+  FOOTBALL
+  BASKETBALL
+  TENNIS
+}
+
+model User {
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  passwordHash            String
+  name                    String
+  isAdultConfirmed        Boolean                  @default(false)
+  emailVerifiedAt         DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  bankrolls               Bankroll[]
+  auditLogs               AuditLog[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  refreshSessions         RefreshSession[]
+}
+
+model Bankroll {
+  id        String       @id @default(cuid())
+  userId    String
+  name      String
+  mode      BankrollMode
+  isPublic  Boolean      @default(false)
+  sport     Sport
+  currency  String       @default("EUR")
+  timezone  String       @default("Europe/Paris")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bets      Bet[]
+
+  @@index([userId])
+  @@index([isPublic, mode, sport])
+}
+
+model Bet {
+  id           String    @id @default(cuid())
+  bankrollId   String
+  userId       String
+  sport        Sport
+  bookmaker    String    @default("")
+  stakeUnits   Float
+  oddsDecimal  Float
+  isLive       Boolean   @default(false)
+  eventStartAt DateTime
+  status       BetStatus @default(PENDING)
+  profitUnits  Float     @default(0)
+  lockedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  bankroll     Bankroll  @relation(fields: [bankrollId], references: [id], onDelete: Cascade)
+  legs         BetLeg[]
+
+  @@index([bankrollId])
+  @@index([userId])
+  @@index([status, eventStartAt])
+  @@index([sport, createdAt])
+}
+
+model BetLeg {
+  id           String @id @default(cuid())
+  betId        String
+  sportEventId String
+  market       String
+  selection    String
+  oddsDecimal  Float
+  bet          Bet    @relation(fields: [betId], references: [id], onDelete: Cascade)
+
+  @@index([betId])
+  @@index([sportEventId])
+}
+
+model SportEvent {
+  id         String   @id
+  sport      Sport
+  startsAt   DateTime
+  homeTeam   String
+  awayTeam   String
+  finalScore String?
+  isFinished Boolean  @default(false)
+
+  @@index([sport, startsAt])
+}
+
+model Settlement {
+  id              String   @id @default(cuid())
+  betId           String   @unique
+  providerEventId String
+  settledAt       DateTime @default(now())
+  result          BetStatus
+
+  @@index([settledAt])
+}
+
+model PerformanceSnapshot {
+  id          String   @id @default(cuid())
+  bankrollId  String
+  fromDate    DateTime
+  toDate      DateTime
+  totalBets   Int
+  wins        Int
+  losses      Int
+  winRate     Float
+  stakedUnits Float
+  profitUnits Float
+  roi         Float
+  yield       Float
+  drawdown    Float
+  createdAt   DateTime @default(now())
+
+  @@index([bankrollId, fromDate, toDate])
+}
+
+model LeaderboardCache {
+  id          String   @id @default(cuid())
+  sourceSlug  String
+  sport       Sport
+  window      String
+  fromDate    DateTime
+  toDate      DateTime
+  payload     Json
+  updatedAt   DateTime @updatedAt
+
+  @@index([sourceSlug, sport, window])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  payload   Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model WidgetKey {
+  id        String   @id @default(cuid())
+  widgetKey String   @unique
+  name      String
+  sport     Sport?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RefreshSession {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+

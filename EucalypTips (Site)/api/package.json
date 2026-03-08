@@ -1,0 +1,11 @@
+{
+  "name": "@site/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"@site/api deprecated: use @app/api\"",
+    "start": "echo \"@site/api deprecated: use @app/api\""
+  },
+  "description": "Deprecated skeleton. Single backend is @app/api."
+}

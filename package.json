@@ -1,0 +1,35 @@
+{
+  "name": "nouveau-site-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "EucAnalysTips (App)/api",
+    "EucAnalysTips (App)/app",
+    "EucAnalysTips (App)/mobile",
+    "EucAnalysTips (App)/widget",
+    "EucalypTips (Site)/api",
+    "EucalypTips (Site)/web",
+    "packages/types",
+    "packages/sdk",
+    "packages/ui"
+  ],
+  "scripts": {
+    "build": "npm run build -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "lint": "npm run lint -ws --if-present",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "npm run prisma:generate --workspace @app/api",
+    "db:migrate": "npm run prisma:migrate --workspace @app/api",
+    "db:migrate:deploy": "npm run prisma:migrate:deploy --workspace @app/api",
+    "dev:api": "npm run start:dev --workspace @app/api",
+    "dev:app": "npm run dev --workspace @app/eucanalyptips",
+    "dev:site-api": "echo \"@site/api deprecated: use npm run dev:api (single backend)\"",
+    "dev:web": "npm run dev --workspace @site/web",
+    "dev:widget": "npm run dev --workspace @app/widget",
+    "dev:mobile": "npm run start --workspace @app/mobile"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
