@@ -14,7 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prebuild": "npm --prefix \"../../packages/types\" run build"
+    "prebuild": "npm run prisma:generate && npm run build --workspace @nouveau/types"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
